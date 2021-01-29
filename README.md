@@ -1,8 +1,8 @@
-# # particle_filter_project
+## particle_filter_project
 
 # Team Member Names: Daria Shifrina, Joyce Passananti 
 
-# # Implementation Plan
+## Implementation Plan
 
 # How you will initialize your particle cloud (initialize_particle_cloud()).
 - The initial particle cloud is equal to the first collected PoseArray. If we want to start with a particle cloud of 100 particles, we will take the length of the PoseArray, divide it by the amount of particles (100 in this case), and then pick every 100th Pose in the PoseArray, initialize it as a particle object and add it to the particle cloud array. This will create a uniform spread of particles over the array.
@@ -13,16 +13,16 @@
 - We will test out using a small sample of particles to begin with, and visually reference the map to check the particles seem to be moving in the correct direction.
 # How you will compute the importance weights of each particle after receiving the robot's laser scan data (update_particle_weights_with_measurement_model())
 - Using the formula introduced in the class exercise:
- 
+- ![equation](/equation.png)
 - We will calculate the left, middle, and right “sensor data” given each particle’s new position, and compare zt[m][i] where i[3]for each particle m to the measured sensor data from the robot scan zt[i]. 
 - We will test out using a small sample of particles to begin with, and visually reference the map to check the weights calculated are representative of what we see, and show a pattern converging. 
 
 # How you will normalize the particles' importance weights (normalize_particles()) and resample the particles (resample_particles()).
 - To reweight particles, we will iterate through the particle cloud and for each particle p that has weight w_p, we will compute the normalized weight by dividing individual w_p by the sum of weights from all particles.
 - To resample particles, we will call draw_random_sample(choices, probabilities, n) and pass in the following:
-- - Choices: our current array self.particle_cloud
-- - Probabilities: the normalized_weights
-- - N: Length of self.particle_cloud 
+    - Choices: our current array self.particle_cloud
+    - Probabilities: the normalized_weights
+    - N: Length of self.particle_cloud 
 - We will test using print functions and compare with our own calculations/observations.To facilitate this manual testing we will start out with a small particle cloud.
 
 # How you will update the estimated pose of the robot (update_estimated_robot_pose())
@@ -34,9 +34,9 @@
 - Additionally, in the final step where we predict where our robot is, we will not look for a specific matching particle but a particle whose hypothetical LaserScan data is within 2-3 degrees of the robot’s actual LaserScan data.
 
 
-# # Timeline:
-Sunday 1/31: finish initialize_particle_cloud() and update_particles_with_motion_model()
-Wednesday ⅔ : finish update_particle_weights_with_measurement_model(), normalize_particles()
-Friday ⅖:  resample_particles() and update_estimated_robot_pose().
-Sunday 2/7: Figure out way out of room. Finalize code. Finalize gif. 
-Tuesday 2/9: Finalize writeup. Submit it.
+## Timeline:
+Sunday 1/31: finish initialize_particle_cloud() and update_particles_with_motion_model()  
+Wednesday ⅔ : finish update_particle_weights_with_measurement_model(), normalize_particles()  
+Friday ⅖:  resample_particles() and update_estimated_robot_pose().  
+Sunday 2/7: Figure out way out of room. Finalize code. Finalize gif.   
+Tuesday 2/9: Finalize writeup. Submit it.  
