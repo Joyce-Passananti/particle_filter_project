@@ -186,15 +186,19 @@ class ParticleFilter:
 
     def normalize_particles(self):
         # make all the particle weights sum to 1.0
-        
+        print('3')
         # Get the sum of all particle weights
         total_weight = 0
         for p in self.particle_cloud:
+            if(math.isnan(p.w)):
+                p.w = 0
             total_weight += p.w
         
         # Normalize each particle's weight accordingly
         for p in self.particle_cloud:
             p.w /= total_weight
+        for p in self.particle_cloud:
+            print(p.w)
 
 
 
@@ -213,6 +217,7 @@ class ParticleFilter:
 
 
     def publish_estimated_robot_pose(self):
+        print('5')
 
         robot_pose_estimate_stamped = PoseStamped()
         robot_pose_estimate_stamped.pose = self.robot_estimate
@@ -222,9 +227,16 @@ class ParticleFilter:
 
 
     def resample_particles(self):
-
-         # TODO
-         print("todo: resample")
+        probabilities = []
+        #get all the current particle weights as a probabilities list
+        for particle in self.particle_cloud:
+            print(particle.w)
+            probabilities.append(particle.w)
+        #print(probabilities)
+        self.num_particles = self.num_particles - 1
+        new_cloud = draw_random_sample(self.particle_cloud, probabilities, self.num_particles)
+        self.particle_cloud = new_cloud
+            
 
 
 
@@ -302,14 +314,30 @@ class ParticleFilter:
 
     def update_estimated_robot_pose(self):
         # based on the particles within the particle cloud, update the robot pose estimate
-        
-         # TODO
-         print("todo: estimate robot pose")
+        #instead of going off highest particle weight, we decided to average the coordinates of the particles remaining in cloud.
+        x_total = 0
+        y_total = 0
+        theta_total = 0
+        for p in self.particle_cloud:
+            x_total += p.pose.orientation.x
+            y_total += p.pose.orientation.y
+            theta_total += get_yaw_from_pose(p.pose)
+        robo_x = x_total/self.num_particles
+        robo_y = y_total/self.num_particles
+        robo_theta = quaternion_from_euler(0, 0 , theta_total/self.num_particles)
+
+        self.robot_estimate.position.x = robo_x
+        self.robot_estimate.position.y = robo_y
+        self.robot_estimate.orientation.x = robo_theta[0]
+        self.robot_estimate.orientation.y = robo_theta[1]
+        self.robot_estimate.orientation.z = robo_theta[2]
+        self.robot_estimate.orientation.w = robo_theta
+    
 
 
     
     def update_particle_weights_with_measurement_model(self, data):
-
+        print('2')
         # wait until initialization is complete
         if not(self.initialized):
             return
@@ -347,17 +375,18 @@ class ParticleFilter:
                 
                 # set the weight of the particle
                 p.w = q
-
                 # print everything out so we can see what we get and debug (REMOVE BEFORE SUBMISSION)
                 # print(p)
                 # print("Scan[", a, "]: ", z_t_k)
                 # print("\t", a, ": [", x_z_t_k, ", ", y_z_t_k, "]")
                 # print("\tobs dist: ", closest_obstacle_dist)
                 # print("\tprob: ", prob, "\n")
+            #print(p.w)
+
         
 
     def update_particles_with_motion_model(self):
-
+        print('1')
         # based on the how the robot has moved (calculated from its odometry), we'll  move
         # all of the particles correspondingly
 
