@@ -12,6 +12,8 @@ from tf import TransformListener
 from tf import TransformBroadcaster
 from tf.transformations import quaternion_from_euler, euler_from_quaternion
 
+from likelihood_field import LikelihoodField
+
 import numpy as np
 from numpy.random import random_sample
 import math
@@ -19,6 +21,13 @@ from copy import deepcopy
 
 from random import randint, random
 
+
+def compute_prob_zero_centered_gaussian(dist, sd):
+    """ A helper funtion that takes in distance from zero (dist) and standard deviation (sd) for gaussian
+        and returns probability (likelihood) of observation """
+    c = 1.0 / (sd * math.sqrt(2 * math.pi))
+    prob = c * math.exp((-math.pow(dist,2))/(2 * math.pow(sd, 2)))
+    return prob
 
 
 def get_yaw_from_pose(p):
@@ -80,13 +89,14 @@ class ParticleFilter:
         self.odom_frame = "odom"
         self.scan_topic = "scan"
 
-        # inialize our map and occupancy field
+        # inialize our map, likelihood field and occupancy field
         self.map = OccupancyGrid()
         self.occupancy_field = None
+        self.likelihood_field = LikelihoodField()
 
 
         # the number of particles used in the particle filter
-        self.num_particles = 10000
+        self.num_particles = 100
 
         # initialize the particle cloud array
         self.particle_cloud = []
@@ -131,24 +141,60 @@ class ParticleFilter:
 
         self.map = data
 
-        self.occupancy_field = OccupancyField(data)
+        # self.occupancy_field = OccupancyField(data)
 
     
 
     def initialize_particle_cloud(self):
         
-        # TODO
+        # gets the upper and lower bounds of x and y such that 
+        #   the resultant bounding box contains all of the obstacles in the map
+        ((x_lower, x_upper), (y_lower, y_upper)) = self.likelihood_field.get_obstacle_bounding_box()
+        
+        # we'll initialize our cloud of particles of form [x, y, theta] of size: num_particles
+        i=0
+        while i < self.num_particles:
+            # randomly choose a position on the map for our particle
+            p = Pose()
+            p.position.x = np.random.uniform(x_lower, x_upper)
+            p.position.y = np.random.uniform(y_lower, y_upper)
 
+            # get Occupancy grid index of the particle
+            x = (p.position.x - self.map.info.origin.position.x) // self.map.info.resolution            
+            y = (p.position.y - self.map.info.origin.position.y) // self.map.info.resolution
+            index = x + y*self.map.info.width
+
+            # check that the index is not occupied by an obstacle
+            if (self.map.data[int(index)] != -1):
+                q = quaternion_from_euler(0, 0, np.random.uniform(0, 2 * np.pi))
+                p.orientation.z = q[2]
+                p.orientation.w = q[3]
+
+                # initialize the new particle, where all will have the same weight (1.0)
+                new_particle = Particle(p, 1.0)
+
+                # append the particle to the particle cloud
+                self.particle_cloud.append(new_particle)
+                
+                # increase our count of created particles
+                i+= 1
 
         self.normalize_particles()
-
+        
         self.publish_particle_cloud()
 
 
     def normalize_particles(self):
         # make all the particle weights sum to 1.0
         
-        # TODO
+        # Get the sum of all particle weights
+        total_weight = 0
+        for p in self.particle_cloud:
+            total_weight += p.w
+        
+        # Normalize each particle's weight accordingly
+        for p in self.particle_cloud:
+            p.w /= total_weight
 
 
 
@@ -177,7 +223,8 @@ class ParticleFilter:
 
     def resample_particles(self):
 
-        # TODO
+         # TODO
+         print("todo: resample")
 
 
 
@@ -256,15 +303,57 @@ class ParticleFilter:
     def update_estimated_robot_pose(self):
         # based on the particles within the particle cloud, update the robot pose estimate
         
-        # TODO
+         # TODO
+         print("todo: estimate robot pose")
 
 
     
     def update_particle_weights_with_measurement_model(self, data):
 
-        # TODO
+        # wait until initialization is complete
+        if not(self.initialized):
+            return
 
+        angles = [0, 90, 180, 270]
+        
+        for p in self.particle_cloud:
+            q = 1
+            for a in angles:
 
+                # grab the observation at time t and laser range finder index k
+                # set the distance to the max (3.5m) if the value is greater than the max value
+                z_t_k = min(data.ranges[a], 3.5)
+
+                # get the orientation of the robot from the quaternion (index 2 of the Euler angle)
+                theta = euler_from_quaternion([
+                    p.pose.orientation.x, 
+                    p.pose.orientation.y, 
+                    p.pose.orientation.z, 
+                    p.pose.orientation.w])[2]
+
+                # translate and rotate the laser scan reading from the robot to the particle's 
+                # location and orientation
+                x_z_t_k = p.pose.position.x + z_t_k * math.cos(theta + (a * math.pi / 180.0))
+                y_z_t_k = p.pose.position.y + z_t_k * math.sin(theta + (a * math.pi / 180.0))
+
+                # find the distance to the closest obstacle
+                closest_obstacle_dist = self.likelihood_field.get_closest_obstacle_distance(x_z_t_k, y_z_t_k)
+
+                # compute the probability based on a zero-centered gaussian with sd = 0.1
+                prob = compute_prob_zero_centered_gaussian(closest_obstacle_dist, 0.1)
+
+                # multiply all sensor readings together
+                q = q * prob
+                
+                # set the weight of the particle
+                p.w = q
+
+                # print everything out so we can see what we get and debug (REMOVE BEFORE SUBMISSION)
+                # print(p)
+                # print("Scan[", a, "]: ", z_t_k)
+                # print("\t", a, ": [", x_z_t_k, ", ", y_z_t_k, "]")
+                # print("\tobs dist: ", closest_obstacle_dist)
+                # print("\tprob: ", prob, "\n")
         
 
     def update_particles_with_motion_model(self):
@@ -272,8 +361,46 @@ class ParticleFilter:
         # based on the how the robot has moved (calculated from its odometry), we'll  move
         # all of the particles correspondingly
 
-        # TODO
+        # get the current and previous positions of the robot
+        curr_x = self.odom_pose.pose.position.x
+        old_x = self.odom_pose_last_motion_update.pose.position.x
+        curr_y = self.odom_pose.pose.position.y
+        old_y = self.odom_pose_last_motion_update.pose.position.y
+        curr_yaw = get_yaw_from_pose(self.odom_pose.pose)
+        old_yaw = get_yaw_from_pose(self.odom_pose_last_motion_update.pose)
+        
+        # calculate the distance moved and angle rotated
+        x_moved = curr_x - old_x
+        y_moved = curr_y - old_y
+        yaw_rotated = curr_yaw - old_yaw
+        
+        for i, p in enumerate(self.particle_cloud):
+            # get the x,y position and orientation of the particle from the quaternion (index 2 of the Euler angle)
+            p_x = p.pose.position.x
+            p_y = p.pose.position.y
+            p_yaw = euler_from_quaternion([
+                p.pose.orientation.x, 
+                p.pose.orientation.y, 
+                p.pose.orientation.z, 
+                p.pose.orientation.w])[2]
 
+            # Calculate the particle's new coordinates and orientation based on its angle difference from the robot's orientation
+            rotation = p_yaw - old_yaw
+            new_x = p_x + math.sin((math.pi / 180.0)*rotation) * y_moved + math.cos((math.pi / 180.0)*rotation) * x_moved
+            new_y = p_y + math.sin((math.pi / 180.0)*rotation) * x_moved + math.cos((math.pi / 180.0)*rotation) * y_moved
+            new_yaw = p_yaw + yaw_rotated
+            new_q = quaternion_from_euler(0, 0 , new_yaw)
+
+            #Create a new Pose with the updated particle position and orientation
+            new_pose = Pose()
+            new_pose.position.x = new_x
+            new_pose.position.y = new_y
+            new_pose.orientation.z = new_q[2]
+            new_pose.orientation.w = new_q[3]
+
+            self.particle_cloud[i] = Particle(new_pose, p.w)
+        
+        
 
 
 if __name__=="__main__":
