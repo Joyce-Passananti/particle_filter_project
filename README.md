@@ -1,4 +1,10 @@
-# particle_filter_project
+# Particle Filter Project
+
+<p align="center">
+  <img src="particlefilter.gif" alt="Particle Filter Demo"/>
+</p>
+
+
 
 ## Team Member Names: Daria Shifrina, Joyce Passananti 
 
