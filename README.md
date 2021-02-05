@@ -66,13 +66,13 @@ The particle filter project consists of emulating made up particles that mirror 
 
 #### Computation of Importance Weights
 
-- Code location: (1-3 sentences): Please describe where in your code you implemented this step of the particle filter.
-- Function/code description: (1-3 sentences per function / portion of code): Describe the structure of your code. For the functions you wrote, describe what each of them does and how they contribute to this step of the particle filter.
+Particle weights are implemented within the `update_particle_weights_with_measurement_model` and `normalize_particles` functions within the particle_filter.py file. 
+First, their general weights are updated within the `update_particle_weights_with_measurement_model` function. For each particle within the current particle cloud, the orthogonal distance is calculated for the angles 0, 90, 180, and 270. First, the bot's LaserScan data is stored and theta is calculated from its orientation. Then, the LaserScan reading is translated and rotated to the particle's location and orientation. The distance to the closest obstacle is found, and using the method `compute_prob_zero_centered_gaussian`, the probability of the particle matching the robot is calculated based on a zero-centered gaussian with a standard deviation of 0.1. Lastly, all sensor readings are multiplied together to compose the new weight of the particle. To minimize noise, if the robot's LaserScan data exceeds 3.5, then this observation is skipped for the particular particle to avoid 'nan' objects that mess up particle weight calculations. By ignoring just that value, a particle that has an infintesimal distance on one side will still be a valid candidate (for instance if its very close to the boundary between the outside and the inside environment. 
+Next, the weights are normalized within the `normalize_particles` function. This is done by adding up the calculated weights of all the particles and then dividing each current weight by the total weight. This makes sure that they add up to 1, and can be resampled properly in the next step. 
 
 #### Resampling
 
-- Code location: (1-3 sentences): Please describe where in your code you implemented this step of the particle filter.
-- Function/code description: (1-3 sentences per function / portion of code): Describe the structure of your code. For the functions you wrote, describe what each of them does and how they contribute to this step of the particle filter.
+Resampling is implemented within the `resample_particle`s function within the particle_filter.py file. First, a list of all current probabilities is created, whose index is a particle number and whose value is the corresponding particle weight. Then a new cloud is created by drawing a random sample using the `draw_random_sample` function, and passing in the current cloud, a list of probabilities, and the actual number of particles. Then, the existing particle cloud is set to the new cloud. The next time the map is rendered, the recalculated set of particles is shown. 
 
 ### Challenges
 
