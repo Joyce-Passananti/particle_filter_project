@@ -55,8 +55,8 @@ The goal of this project is to implement a particle filter algorithm to solve a 
 
 ### High-level Description
 
- (1 paragraph): At a high-level, describe how you solved the problem of robot localization. What are the main components of your approach?
- 
+The particle filter project consists of emulating made up particles that mirror the movements of the robot and then narrowing down the particles that most resemble the sensor readings of the bot. First, within the provided map, generate 19500 randomly placed particles. To make sure they are properly placed, make sure they are within the boundary constraints of the maps and do not intersect with any obstacles. When the robot moves, the particle's positions are updated. This is done by calculating the current and previous position of the robot, finding the distance moved and the point of rotation. Each particle is replaced with a new Pose object, whose position is moved and updated with the robot's orientation. Then, the weights of the particles are calculated based on how closely their simulated sensor readings reflect the actual sensor readings of the robot. Based on these weights, a new round of particles are remodeled so that the higher weighted particles are more represented. Within multile time steps, these particles narrow down on the actual location of the robot. Additionally, the estimated robot pose is constantly updated on the map as well to reflect the average x/y positions and orientation of the particles. 
+
 ### Code Breakdown
 
 #### Movement
