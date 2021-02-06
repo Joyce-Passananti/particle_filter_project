@@ -77,7 +77,7 @@ Resampling is implemented within the `resample_particle`s function within the pa
 
 ### Challenges
 
-(1 paragraph): If you had more time, how would you improve your particle filter?
+One challenge was identifying the problem of 'nan' weighing particles. These occurred when the one of the particle closest distance values were outside the map. Since our algorithm would multiply the four distance values of the particle, when an int was multiplied by a nan, the particle's new weight became nan, and the total weight was then calculated to be nan which messed up the whole algorithm. To bypass this, we initially set the closest distance to 0.1 if its value was nan. However, this threw off the calculations for the particles, especially when the robot was navigating close to the walls. For our final iteration, we ended up skipping the nan values so that the particle's weight would be a product of the other non-nan values and leave it a potential candidate with robot translations.
 
 ### Future Work
 
@@ -87,3 +87,8 @@ Resampling is implemented within the `resample_particle`s function within the pa
 
 (at least 2 bullet points with 2-3 sentences per bullet point): What are your key takeaways from this project that would help you/others in future robot programming assignments working in pairs? For each takeaway, provide a few sentences of elaboration.
 
+0. Write Comments as you Work (Dasha): Joyce was the first to work on the project, and when I started working on the code, I was blown away at how well it was commented through. I typically grind out my assignment and then go over it to clarify it to others. However, this encouraged me to actively comment my code as I worked, and helped me out when I came back to it over multiple sessions. Especially helpful for working on teams - active, accurate comments speak louder than lines of code!
+
+1. Dragging Robot vs Teleoperating: Debugging the code by dragging the robot gave us a much rougher time than using teleoperating. The argument for teleoperating was to not have an extra terminal open that would slow down the performance of the machine. However, by dragging around the robot on the map, it was much harder to see localization of particles and calculate whether they were being picked accurately by weights. We recommend going the extra terminal route and using teleoperating as suggested in the assignment.
+
+2. Tidier Screen with ROS: we used Linux Workspaces to organize our work. [Linux Workspaces](https://help.ubuntu.com/stable/ubuntu-help/shell-workspaces.html.en) somewhat emulates what it would be like to have multiple monitors with different content and you create your own custom layout of what that should look like. In one workspace, we opened Turtlebot Gazebo, RViz, and Teleoperating, and in another all of the other terminals running background processes.
