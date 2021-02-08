@@ -81,7 +81,7 @@ One challenge was identifying the problem of 'nan' weighing particles. These occ
 
 ### Future Work
 
-(1 paragraph): If you had more time, how would you improve your particle filter?
+With more time, improvements we would make to our particle filter would be to account for unexpected situations such as the robot being picked up/moved around or going over uneven terrain (wires/bumps). We could do this by adding buffers of (+-) some number when checking sensor measurements of particles against sensor data from the robot. As future work we also think it would be good to allow the robot to move at higher speeds. We could accomplish by setting the minimum thresholds of linear and angular velocities for when to update particle position higher, thus recalculating less often and requiring less of the CPU.
 
 ###  Takeaways
 
